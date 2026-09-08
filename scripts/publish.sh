@@ -46,7 +46,37 @@ done
 # --directory . rather than a temporary tree, so the index describes everything
 # already published and not only what this run happened to add.
 gem generate_index --directory . >/dev/null
-echo "  index regenerated over $(ls gems/*.gem 2>/dev/null | wc -l | tr -d ' ') gem(s)"
+count=$(ls gems/*.gem 2>/dev/null | wc -l | tr -d ' ')
+echo "  index regenerated over $count gem(s)"
+
+# Whether the compact index was written at all depends on the RubyGems doing the
+# writing: older ones emit only the classic index and leave versions/info/names
+# untouched. That is the dangerous case, because a *stale* compact index is far
+# worse than a missing one -- a current client reads /versions, does not find the
+# gem listed, and stops. It never looks at the classic index, so a feed that is
+# perfectly correct in the old format reports "Could not find a valid gem".
+#
+# So: if the compact index does not describe what is actually on disk, delete it.
+# A client that gets a 404 for /versions falls back to the classic index and
+# resolves; a client that gets an empty one does not.
+stale=0
+for gem in gems/*.gem; do
+  [ -e "$gem" ] || continue
+  name="$(basename "$gem" .gem)"
+  name="${name%-*}"
+  if [ ! -s versions ] || ! grep -q "^$name " versions; then
+    stale=1
+    break
+  fi
+done
+
+if [ "$count" -gt 0 ] && [ "$stale" = 1 ]; then
+  rm -rf versions names info
+  echo "  this rubygems ($(gem --version)) does not write the compact index;"
+  echo "  removed it so clients fall back to the classic one rather than reading an empty index"
+elif [ "$count" -gt 0 ]; then
+  echo "  compact index lists $(( $(wc -l < versions) - 2 )) gem(s)"
+fi
 
 # The landing page's table, rebuilt from what is on disk rather than appended
 # to, so a gem removed by hand disappears from it too.
