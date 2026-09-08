@@ -32,15 +32,28 @@ for gem in "$@"; do
     *) echo "not a gem: $gem" >&2; exit 1 ;;
   esac
   name="$(basename "$gem")"
-  # Refused rather than overwritten. A published version is something people
-  # have already resolved and locked; replacing its bytes in place means two
-  # machines can hold different code under one version and neither is wrong.
-  if [ -f "gems/$name" ] && ! cmp -s "$gem" "gems/$name"; then
-    echo "refusing to replace gems/$name with different bytes; yank and republish under a new version" >&2
-    exit 1
+  # A published version keeps the bytes it was published with. People have
+  # already resolved and locked it, and replacing it in place means two machines
+  # hold different code under one version and neither of them is wrong.
+  #
+  # Kept rather than refused, because a release job has to be re-runnable and a
+  # gem is not byte-reproducible: the gemspec carries a build date, so a rebuild
+  # of the very same commit differs from what is on the feed. Failing here would
+  # mean no release could ever be re-run, and the failure would look like
+  # tampering when it is only a second `gem build`. Publishing a genuinely
+  # changed version needs a new version number, which is the same rule every
+  # immutable registry enforces.
+  if [ -f "gems/$name" ]; then
+    if cmp -s "$gem" "gems/$name"; then
+      echo "  $name is already published, byte for byte"
+    else
+      echo "  $name is already published; keeping the published bytes"
+      echo "  (a rebuild differs by its timestamp; publish a new version to change the code)"
+    fi
+  else
+    cp "$gem" "gems/$name"
+    echo "  added $name"
   fi
-  cp "$gem" "gems/$name"
-  echo "  added $name"
 done
 
 # --directory . rather than a temporary tree, so the index describes everything
@@ -56,26 +69,42 @@ echo "  index regenerated over $count gem(s)"
 # gem listed, and stops. It never looks at the classic index, so a feed that is
 # perfectly correct in the old format reports "Could not find a valid gem".
 #
-# So: if the compact index does not describe what is actually on disk, delete it.
-# A client that gets a 404 for /versions falls back to the classic index and
-# resolves; a client that gets an empty one does not.
-stale=0
-for gem in gems/*.gem; do
-  [ -e "$gem" ] || continue
-  name="$(basename "$gem" .gem)"
-  name="${name%-*}"
-  if [ ! -s versions ] || ! grep -q "^$name " versions; then
-    stale=1
-    break
-  fi
-done
+# So: if the compact index does not describe what the classic index describes,
+# delete it. A client that gets a 404 for /versions falls back and resolves; a
+# client that gets an empty one gives up.
+#
+# The comparison is against specs.4.8.gz rather than against the filenames in
+# gems/, because a gem's name comes from the gemspec inside it and not from what
+# the file happens to be called. Reading the filename gets that wrong for any
+# gem saved under a different name, and then this check reports a healthy feed
+# as broken -- which it did, the first time it ran.
+classic_names=$(ruby -rzlib -e '
+  begin
+    specs = Marshal.load(Zlib::GzipReader.open("specs.4.8.gz").read)
+    puts specs.map { |name, _, _| name }.uniq.sort.join("\n")
+  rescue StandardError
+  end
+')
 
-if [ "$count" -gt 0 ] && [ "$stale" = 1 ]; then
+stale=0
+if [ -n "$classic_names" ]; then
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if [ ! -s versions ] || ! grep -q "^$name " versions; then
+      stale=1
+      break
+    fi
+  done <<EOF
+$classic_names
+EOF
+fi
+
+if [ -n "$classic_names" ] && [ "$stale" = 1 ]; then
   rm -rf versions names info
-  echo "  this rubygems ($(gem --version)) does not write the compact index;"
+  echo "  this rubygems ($(gem --version)) did not write the compact index;"
   echo "  removed it so clients fall back to the classic one rather than reading an empty index"
-elif [ "$count" -gt 0 ]; then
-  echo "  compact index lists $(( $(wc -l < versions) - 2 )) gem(s)"
+elif [ -n "$classic_names" ]; then
+  echo "  compact index lists $(printf '%s\n' "$classic_names" | wc -l | tr -d ' ') gem(s)"
 fi
 
 # The landing page's table, rebuilt from what is on disk rather than appended
