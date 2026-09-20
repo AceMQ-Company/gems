@@ -1,0 +1,2 @@
+---
+0.1.0 acemq-amqp:~> 0.7.0,railties:< 9.0&>= 7.1|checksum:GOxfNmTm8BAET0fqyh97QDMTMguDQ8OZg5W6WTiXGRY=,ruby:>= 3.1
