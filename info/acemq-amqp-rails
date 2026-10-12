@@ -3,3 +3,4 @@
 0.2.0 acemq-amqp:~> 0.7.0,railties:< 9.0&>= 7.1|checksum:3e+29H93har3ryqQCVUzrFZ/GpzXNhkLehMfXCd4D9c=,ruby:>= 3.1
 0.2.1 acemq-amqp:~> 0.7.11,railties:< 9.0&>= 7.1|checksum:At0Gr0AARphesM48+a8lD2w1cq03y6hx5oVgeuX82is=,ruby:>= 3.1
 0.2.2 acemq-amqp:~> 0.7.12,railties:< 9.0&>= 7.1|checksum:Tov3GX7u9Fp+z59nDB0YPHgxVdODHuwB/HQpvmB9j+8=,ruby:>= 3.1
+0.2.3 acemq-amqp:~> 0.7.13,railties:< 9.0&>= 7.1|checksum:wyT7XRxMhBbK7dBaMCg1r9Bji/kAqu6ew9TGOVJFxx4=,ruby:>= 3.1
