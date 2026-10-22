@@ -8,3 +8,4 @@
 0.2.5 acemq-amqp:~> 0.7.15,railties:< 9.0&>= 7.1|checksum:roYrOKSBZHx9POtOxC1vdEhwOOYW5EfbovIwTsMtdC8=,ruby:>= 3.1
 0.2.6 acemq-amqp:~> 0.7.16,railties:< 9.0&>= 7.1|checksum:cV04NawvGKh0Zr9Z3KVWIVQqDUBQ5VDpG204jgVmmIY=,ruby:>= 3.1
 0.2.7 acemq-amqp:~> 0.7.17,railties:< 9.0&>= 7.1|checksum:3/L6bXDah2uYwvOxr0yw7BJ6SRtt5ZM+W/YjQaPoWgc=,ruby:>= 3.1
+0.2.8 acemq-amqp:~> 0.7.18,railties:< 9.0&>= 7.1|checksum:+OCm1B4z/NEicIJLNuQ51DgKY+fjydkqk2isDawZiXk=,ruby:>= 3.1
